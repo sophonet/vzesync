@@ -5,7 +5,7 @@ After=zfs.service
 [Service]
 WorkingDirectory=/usr/local/bin
 Restart=always
-ExecStart=python3 /usr/local/bin/vzesync.py
+ExecStart=python3 /usr/local/bin/vzesync.py --config=/etc/vzesync/config.json
 
 [Install]
 WantedBy=multi-user.target

@@ -17,7 +17,7 @@
             "dev_disk_by_id_identifier1": "My first backup drive",
 	        "dev_disk_by_id_identifier2": "My new backup drive"
         },
-        "timestampfolder": "/data/timestamps",
+        "timestampfolder": "/var/lib/vzesync/timestamps",
         "scsi_drive": "scsi4",
         "vmid": "100"
     },
@@ -31,6 +31,7 @@
         "retention": {
             "default": 10,
             "timemachine": 1
-        }
+        },
+        "timestampfolder": "/var/lib/vzesync/timestamps"
     }
 }

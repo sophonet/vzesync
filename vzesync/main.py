@@ -132,11 +132,12 @@ class pve_agent(blocking_paramikoclient):
 
 
 class zfs_agent(blocking_paramikoclient):
-    def __init__(self, hostname: str, hostkey: list, username: str, private_key: list, backuppool_name: str, backupfs_name: str, retention: dict):
+    def __init__(self, hostname: str, hostkey: list, username: str, private_key: list, backuppool_name: str, backupfs_name: str, retention: dict, timestampfolder: str):
         super().__init__(hostname, hostkey, username, private_key)
         self.backuppool_name = backuppool_name
         self.backupfs_name = backupfs_name
         self.retention = retention
+        self.timestampfolder = timestampfolder
         self.block_exec_command(f"zpool import {self.backuppool_name}", False)
         self.block_exec_command(f"zfs load-key {self.backuppool_name}/{self.backupfs_name}", False)
 
@@ -357,5 +358,8 @@ def main():
     logging.info("Starting vzesync")
     with open(config_path) as config_file:
         config = json.load(config_file)
+
+    # Create timestamp folder if it does not exist
+    os.makedirs(config["pvehost"]["timestampfolder"], exist_ok=True)
 
     main_loop(config)
