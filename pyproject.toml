@@ -15,5 +15,5 @@ dependencies = [
 [project.scripts]
 vzesync = "vzesync.main:main"
 
-[tool.setuptools.include]
+[tool.setuptools.package-data]
 files = ["examples/vzesync.service", "examples/config.json", "README.md"]

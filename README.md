@@ -8,6 +8,8 @@ VM. The two zfs raid1 disks are passed through the VM, so the ZFS modules need t
 available in the VM (see ee e.g. https://openzfs.github.io/openzfs-docs/Getting%20Started/Debian/index.html
 and additional hints for UEFI boot https://forums.debian.net/viewtopic.php?t=154555:).
 
+This explains the acronym "Virtual host with ZFS-Encryption".
+
 The container-based backup service in this repository does the following:
 
 * The service checks the presence of attached backup disks on the proxmox host once an hour
@@ -26,10 +28,12 @@ Please check the python code in case of doubt.
 
 # Prerequisites
 
-* A running ZFS infrastructure
-* docker compose
+* A running ZFS infrastructure in a virtual machine.
 
 # Installation
+
+The steps below describe manual installation. However, it can be automated using ansible and the
+role implemented here https://github.com/sophonet/vzesync-role.
 
 1. Check out this repository to a folder of choice in the server VM, e.g. in an encrypted filesystem
    on the ZFS raid (since it will later include an SMTP password).
@@ -47,10 +51,10 @@ Please check the python code in case of doubt.
         - The name of the backup pool and root fs on the pool
         - Number of snapshots on the backup drive that should be kept, per top filesystem
 3. Build the container with (python + paramiko) with ```docker compose build```
-3. Copy zrssyncservice.service to /etc/systemd/system, adjust the WorkingDirectory and run
+3. Copy vzesync.service to /etc/systemd/system, adjust the WorkingDirectory and run
 ```
 systemctl daemon-reload
-systemctl enable --now zrssyncservice
+systemctl enable --now vzesync
 ```
 
 # Preparing a zfs backup disk
@@ -61,7 +65,7 @@ systemctl enable --now zrssyncservice
 qm set 100 -scsi4 /dev/disk/by-id/IDENTIFIER
 ```
 2. Create a zpool and an encrypted/compressed top-level file system in the VM. The following commands assume that there is a password
-key file available in a shared memory file on the server VM (only persistent until reboot, see https://github.com/sophonet/zfsdecryptassistant):
+key file available in a shared memory file on the server VM (only persistent until reboot, see https://github.com/sophonet/vzekeyprovider):
 ```
 zpool create -f -o ashift=12 -m /zfs/backup backuppool /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi4
 zfs create -o dedup=off -o compression=zstd -o encryption=on -o keylocation=file:///dev/shm/zfspwd -o keyformat=passphrase backuppool/root
