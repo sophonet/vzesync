@@ -1,0 +1,12 @@
+[Unit]
+Description=Backup service using zfs send/recv
+After=zfs.service
+
+[Service]
+WorkingDirectory=/usr/local/bin
+Restart=always
+ExecStart=python3 /usr/local/bin/vzesync.py
+
+[Install]
+WantedBy=multi-user.target
+Alias=backup.service

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vzesync"
+version = "0.1.0"
+description = "Automating backups via zfs send/recv on a Proxmox/QEMU Linux VM"
+authors = [{name = "Fabian Wenzel", email = "pypi@sky.brightspace.de"}]
+license = {text = "MIT"}
+dependencies = [
+  "paramiko"
+]
+
+[project.scripts]
+vzesync = "vzesync.main:main"
+
+[tool.setuptools.include]
+files = ["examples/vzesync.service", "examples/config.json", "README.md"]
