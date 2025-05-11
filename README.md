@@ -1,5 +1,7 @@
 # Automating backups via zfs send/recv on a Proxmox Linux VM
 
+[![Lint status](https://github.com/sophonet/vzesync/actions/workflows/check.yml/badge.svg)](https://github.com/sophonet/vzesync/actions/workflows/check.yml)
+
 ## Introduction
 
 On my personal home server I am running an encrypted zfs raid1 for storing all personal
