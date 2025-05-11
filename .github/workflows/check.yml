@@ -24,6 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8
           pip install pylint
+          pip install paramiko
 
       - name: Run flake8
         id: flake8
@@ -33,4 +34,4 @@ jobs:
       - name: Run linter
         id: pylint
         run: |
-          pylint vzesync --disable=C0116
+          pylint vzesync --disable=C0114,C0115,C0116

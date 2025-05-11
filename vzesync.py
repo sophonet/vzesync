@@ -28,7 +28,7 @@ from glob import glob
 import paramiko
 
 
-class BlockingParamikoClient(object):
+class BlockingParamikoClient:
     keymap = {
         "ssh-rsa": paramiko.rsakey.RSAKey,
         "ssh-ed25519": paramiko.ed25519key.Ed25519Key
@@ -39,7 +39,7 @@ class BlockingParamikoClient(object):
     ):
         self.client = paramiko.SSHClient()
         decoded_bytes = base64.b64decode(hostkey[1])
-        hostkey_obj = paramiko.pkey.PKey.from_string(
+        hostkey_obj = paramiko.PKey.from_type_string(
             hostkey[0], decoded_bytes
         )
         self.client.get_host_keys().add(hostname, hostkey[0], hostkey_obj)
@@ -103,9 +103,8 @@ class PVEAgent(BlockingParamikoClient):
                 self.timestamp_path = f"{self.timestampfolder}/{backup_drive}"
                 return True
 
-        if self.backup_drive is None:
-            logging.info("No backup drive connected")
-            return False
+        logging.info("No backup drive connected")
+        return False
 
     def backup_timestamp_outdated(self) -> bool:
         if not os.path.exists(self.timestamp_path):
@@ -466,7 +465,7 @@ def send_log_via_mail(
     smtp_host: str,
     smtp_username: str,
     smtp_password: str
-):
+) -> None:
     assert isinstance(send_to, list)
 
     msg = MIMEMultipart()
@@ -491,12 +490,12 @@ def send_log_via_mail(
         conn.sendmail(send_from, send_to, msg.as_string())
         conn.close()
 
-    except smtplib.SMTPResponseException as e:
-        error_message = e.smtp_error
+    except smtplib.SMTPResponseException as error:
+        error_message = error.smtp_error
         logging.error("SMTP Error: %s", error_message)
 
 
-def main_loop(config):
+def main_loop(config) -> None:
     while True:
         pve_agent_ = PVEAgent(**config["pvehost"])
         if pve_agent_.backup_drive_present() and \
@@ -521,12 +520,12 @@ def main_loop(config):
         time.sleep(3600)
 
 
-def load_example_config():
+def load_example_config() -> dict:
     config_path = files('vzesync').joinpath('../examples/config.json')
     return json.loads(config_path.read_text())
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="VZE Sync - Backup tool for VM utilizing encrypted ZFS"
     )
