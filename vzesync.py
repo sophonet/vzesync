@@ -76,7 +76,7 @@ class PVEAgent(BlockingParamikoClient):
         backup drives, mounting them to the VM and unmounting them
         after the backup is done.
     '''
-    # pylint: disable-next=too-many-arguments
+    # pylint: disable-next=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         hostname: str,
@@ -194,7 +194,7 @@ class PVEAgent(BlockingParamikoClient):
 class ZFSAgent(BlockingParamikoClient):
     ''' Class for communicating with ZFS host via SSH once it has been mounted.
     '''
-    # pylint: disable-next=too-many-arguments
+    # pylint: disable-next=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         hostname: str,
