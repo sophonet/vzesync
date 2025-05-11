@@ -31,6 +31,7 @@ from glob import glob
 import paramiko
 
 
+# pylint: disable-next=too-few-public-methods
 class BlockingParamikoClient:
     ''' Base class for SSH connections using paramiko. It provides
         a convenience function block_exec_command() that executes
@@ -68,12 +69,14 @@ class BlockingParamikoClient:
         return stdout.read().decode("utf-8"), stderr.read().decode("utf-8")
 
 
+# pylint: disable-next=too-many-instance-attributes
 class PVEAgent(BlockingParamikoClient):
     ''' Class for communicating with Proxmox VE host via SSH.
         This is done for periodically checking the presence of
         backup drives, mounting them to the VM and unmounting them
         after the backup is done.
     '''
+    # pylint: disable-next=too-many-arguments
     def __init__(
         self,
         hostname: str,
@@ -191,6 +194,7 @@ class PVEAgent(BlockingParamikoClient):
 class ZFSAgent(BlockingParamikoClient):
     ''' Class for communicating with ZFS host via SSH once it has been mounted.
     '''
+    # pylint: disable-next=too-many-arguments
     def __init__(
         self,
         hostname: str,
@@ -478,6 +482,7 @@ class ZFSAgent(BlockingParamikoClient):
         self.client.close()
 
 
+# pylint: disable-next=too-many-arguments
 def send_log_via_mail(
     attachments: dict,
     send_from: str,

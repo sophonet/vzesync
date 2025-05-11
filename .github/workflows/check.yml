@@ -34,4 +34,4 @@ jobs:
       - name: Run linter
         id: pylint
         run: |
-          pylint vzesync --disable=C0114,C0115,C0116
+          pylint vzesync
