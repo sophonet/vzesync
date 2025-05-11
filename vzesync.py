@@ -216,11 +216,11 @@ class ZFSAgent(BlockingParamikoClient):
             r'[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}:[0-9]{2}:[0-9]{2}'
         )
 
-    def snapshot_timestamps(self, fs_name: str) -> list[datetime]:
+    def snapshot_timestamps(self, zfs_filesystem: str) -> list[datetime]:
+        ''' Retrieve a sorted list of timestamps of a zfs filesystem '''
         # Determine sorted list of snapshots on backuppool
         stdout, _ = self.block_exec_command(
-            f"zfs list -t snapshot {self.backuppool_name}/"
-            f"{self.backupfs_name}/{fs_name}",
+            f"zfs list -t snapshot {zfs_filesystem}",
             False
         )
         snapshots = stdout.split("\n")
@@ -294,6 +294,7 @@ class ZFSAgent(BlockingParamikoClient):
         logging.info("Error of sync command: %s", stderr)
 
     def remove_filesystem_if_exists(self, zfs_filesystem: str) -> None:
+        ''' Removes a filesystem if it exists '''
         pool_name = zfs_filesystem.split('/')[0]
         # Remove filesystem itself
         stdout, _ = self.block_exec_command(
@@ -314,6 +315,9 @@ class ZFSAgent(BlockingParamikoClient):
     def remove_obsolete_backup_snapshots(
         self, filesystemname: str, backup_snapshots: list
     ) -> None:
+        ''' Remove obsolete backup snapshots according to
+            the retention policy (number of copies to keep)
+        '''
         backups_to_keep = self.retention["default"]
         if filesystemname in self.retention:
             backups_to_keep = self.retention[filesystemname]
@@ -389,7 +393,9 @@ class ZFSAgent(BlockingParamikoClient):
         self.remove_obsolete_backup_snapshots(fs_name, backup_timestamps)
 
     def remove_obsolete_snapshots(self) -> None:
-        ''' Remove obsolete snapshots on backup pool '''
+        ''' Remove obsolete snapshots of filesystems that are older
+            than the oldest backup drive timestamp
+        '''
         # Determine oldest date from all timestamps
         oldest_timestamp = datetime.now()
 
