@@ -406,8 +406,7 @@ class ZFSAgent(BlockingParamikoClient):
         for timestamp_path in glob(self.timestampfolder + "/*"):
             time_stamp_stat = os.stat(timestamp_path)
             last_backup_time = datetime.fromtimestamp(time_stamp_stat.st_mtime)
-            if last_backup_time < oldest_timestamp:
-                oldest_timestamp = last_backup_time
+            oldest_timestamp = min(oldest_timestamp, last_backup_time)
 
         for zfs_filesystem in self.zfs_filesystems():
             # Determine list of snapshots on filesystem
@@ -482,7 +481,7 @@ class ZFSAgent(BlockingParamikoClient):
         self.client.close()
 
 
-# pylint: disable-next=too-many-arguments
+# pylint: disable-next=too-many-arguments,too-many-positional-arguments
 def send_log_via_mail(
     attachments: dict,
     send_from: str,
