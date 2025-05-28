@@ -363,3 +363,7 @@ def main():
     os.makedirs(config["pvehost"]["timestampfolder"], exist_ok=True)
 
     main_loop(config)
+
+
+if __name__ == "__main__":
+    main()

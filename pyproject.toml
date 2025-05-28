@@ -12,8 +12,5 @@ dependencies = [
   "paramiko"
 ]
 
-[project.scripts]
-vzesync = "vzesync.main:main"
-
 [tool.setuptools.package-data]
 files = ["examples/vzesync.service", "examples/config.json", "README.md"]
