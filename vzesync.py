@@ -30,7 +30,8 @@ from glob import glob
 import paramiko
 
 
-DEFAULT_CONFIG_PATH = '/etc/vzesync.json'
+DEFAULT_CONFIG_PATH = '/etc/vzesync.toml'
+
 
 # pylint: disable-next=too-few-public-methods
 class BlockingParamikoClient:
