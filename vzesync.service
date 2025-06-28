@@ -3,9 +3,9 @@ Description=Backup service using zfs send/recv
 After=zfs.service
 
 [Service]
-WorkingDirectory=/usr/local/bin
+WorkingDirectory=/usr/bin
 Restart=always
-ExecStart=python3 /usr/local/bin/vzesync.py --config=/etc/vzesync/config.json
+ExecStart=python3 /usr/bin/vzesync.py
 
 [Install]
 WantedBy=multi-user.target

@@ -1,9 +1,8 @@
 ''' VZE Sync - Backup tool for VM utilizing encrypted ZFS
 '''
 # Config file for storing secrets
-import json
+import tomllib
 import argparse
-from importlib.resources import files
 from typing import Optional
 
 import base64
@@ -29,6 +28,8 @@ from glob import glob
 
 # For communicating with platon host and pve host via SSH
 import paramiko
+
+DEFAULT_CONFIG_PATH = '/etc/vzesync.json'
 
 
 # pylint: disable-next=too-few-public-methods
@@ -525,14 +526,14 @@ def send_log_via_mail(
 def main_loop(config) -> None:
     ''' Main loop for the backup process '''
     while True:
-        pve_agent_ = PVEAgent(**config["pvehost"])
+        pve_agent_ = PVEAgent(**config["pvehost"], **config["common"])
         if pve_agent_.backup_drive_present() and \
                 pve_agent_.backup_timestamp_outdated():
             logbuffer = io.StringIO()
             bufferhandler = logging.StreamHandler(logbuffer)
             logging.getLogger().addHandler(bufferhandler)
             pve_agent_.mount_drive_to_vm()
-            zfs_agent_ = ZFSAgent(**config["zfshost"])
+            zfs_agent_ = ZFSAgent(**config["zfshost"], **config["common"])
             for zfs_filesystem in zfs_agent_.zfs_filesystems():
                 zfs_agent_.zfssync(zfs_filesystem)
             zfs_agent_.remove_obsolete_snapshots()
@@ -548,38 +549,22 @@ def main_loop(config) -> None:
         time.sleep(3600)
 
 
-def load_example_config() -> dict:
-    ''' Load example config file '''
-    config_path = files('vzesync').joinpath('../examples/config.json')
-    return json.loads(config_path.read_text())
-
-
 def main() -> None:
     ''' Main function to set up and run the backup process '''
     parser = argparse.ArgumentParser(
         description="VZE Sync - Backup tool for VM utilizing encrypted ZFS"
     )
     parser.add_argument("--config", help="Path to config file")
-    parser.add_argument(
-        "--print-example",
-        action="store_true",
-        help="Print example config"
-    )
     args = parser.parse_args()
-
-    if args.print_example:
-        print(json.dumps(load_example_config(), indent=2))
-        return
 
     if args.config:
         config_path = args.config
     else:
         config_path = '/etc/vzesync/config.json'
 
-    logging.basicConfig(level=logging.INFO)
     logging.info("Starting vzesync")
-    with open(config_path, encoding='utf-8') as config_file:
-        config = json.load(config_file)
+    with open(config_path, 'rb') as config_file:
+        config = tomllib.load(config_file)
 
     # Create timestamp folder if it does not exist
     os.makedirs(config["pvehost"]["timestampfolder"], exist_ok=True)
@@ -588,4 +573,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()
