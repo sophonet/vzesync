@@ -29,7 +29,13 @@ from glob import glob
 # For communicating with platon host and pve host via SSH
 import paramiko
 
+<<<<<<< HEAD
 DEFAULT_CONFIG_PATH = '/etc/vzesync.json'
+=======
+
+DEFAULT_CONFIG_PATH = '/etc/vzesync.toml'
+
+>>>>>>> 6585ced (FIX: Fixed typo)
 
 
 # pylint: disable-next=too-few-public-methods
