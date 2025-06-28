@@ -30,10 +30,10 @@ jobs:
         run: mkdir -p build
 
       - name: Build DEB and RPM package
-        run: fpm -v ${{ env.VERSION }} -t deb -p build/zfskeyprovider_${{ env.VERSION }}_any.deb
+        run: fpm -v ${{ env.VERSION }} -t deb -p build/vzesync_${{ env.VERSION }}_any.deb
 
       - name: Build RPM package
-        run: fpm -v ${{ env.VERSION }} -t rpm -p build/zfskeyprovider-${{ env.VERSION }}.noarch.rpm
+        run: fpm -v ${{ env.VERSION }} -t rpm -p build/vzesync-${{ env.VERSION }}.noarch.rpm
 
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
