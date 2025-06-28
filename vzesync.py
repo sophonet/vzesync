@@ -29,7 +29,6 @@ from glob import glob
 # For communicating with platon host and pve host via SSH
 import paramiko
 
-
 DEFAULT_CONFIG_PATH = '/etc/vzesync.toml'
 
 
