@@ -1,0 +1,15 @@
+-s dir
+-n vzesync
+--license mit
+--architecture all
+--depends python3
+--maintainer 'Sophonet <sophonet@sky.brightspace.de>'
+--after-install packaging/postinst.sh
+--before-remove packaging/preremove.sh
+--after-remove packaging/postremove.sh
+--description 'Tools for fully automatic backup of encrypted zfs datasets via send|receive.'
+--url "https://github.com/sophonet/vzesync"
+--config-files /etc/vzesync.toml
+vzesync.py=/usr/bin/vzesync.py
+vzesync.toml=/etc/vzesync.toml
+vzesync.service=/lib/systemd/system/vzesync.service
