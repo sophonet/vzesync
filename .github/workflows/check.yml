@@ -29,9 +29,9 @@ jobs:
       - name: Run flake8
         id: flake8
         run: |
-          flake8 vzesync --count --statistics
+          flake8 vzesync.py --count --statistics
 
       - name: Run linter
         id: pylint
         run: |
-          pylint vzesync
+          pylint vzesync.py
