@@ -566,7 +566,7 @@ def main() -> None:
     if args.config:
         config_path = args.config
     else:
-        config_path = '/etc/vzesync/config.json'
+        config_path = DEFAULT_CONFIG_PATH
 
     logging.info("Starting vzesync")
     with open(config_path, 'rb') as config_file:
