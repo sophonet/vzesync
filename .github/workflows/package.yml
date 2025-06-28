@@ -1,0 +1,43 @@
+name: Build and Release Packages
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build DEB and RPM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set up version environment variable
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Install FPM dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev rpm
+          sudo gem install --no-document fpm
+
+      - name: Create build folder
+        run: mkdir -p build
+
+      - name: Build DEB and RPM package
+        run: fpm -v ${{ env.VERSION }} -t deb -p build/zfskeyprovider_${{ env.VERSION }}_any.deb
+
+      - name: Build RPM package
+        run: fpm -v ${{ env.VERSION }} -t rpm -p build/zfskeyprovider-${{ env.VERSION }}.noarch.rpm
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
