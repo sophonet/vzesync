@@ -225,7 +225,7 @@ class ZFSAgent(BlockingParamikoClient):
         ''' Retrieve a sorted list of timestamps of a zfs filesystem '''
         # Determine sorted list of snapshots on backuppool
         logging.info("Retrieving snapshots for filesystem %s", zfs_filesystem)
-    
+
         stdout, _ = self.block_exec_command(
             f"zfs list -t snapshot {zfs_filesystem}",
             False
