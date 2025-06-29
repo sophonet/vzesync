@@ -224,6 +224,8 @@ class ZFSAgent(BlockingParamikoClient):
     def snapshot_timestamps(self, zfs_filesystem: str) -> list[datetime]:
         ''' Retrieve a sorted list of timestamps of a zfs filesystem '''
         # Determine sorted list of snapshots on backuppool
+        logging.info("Retrieving snapshots for filesystem %s", zfs_filesystem)
+    
         stdout, _ = self.block_exec_command(
             f"zfs list -t snapshot {zfs_filesystem}",
             False
@@ -269,7 +271,7 @@ class ZFSAgent(BlockingParamikoClient):
 
         # Determine latest snapshot present on backuppool
         logging.info(
-            "Syncing filesystem %s based on snapshot %s",
+            "Syncing filesystem %s incrementally based on snapshot %s",
             zfs_filesystem,
             base_snapshot
         )
@@ -281,7 +283,11 @@ class ZFSAgent(BlockingParamikoClient):
             f"{fs_name}",
             False
         )
-        logging.info("Errors of sync command: %s", stderr)
+
+        if len(stderr) > 0:
+            logging.info("Errors of sync command: %s", stderr)
+        else:
+            logging.info("Sync successfully completed")
 
     def full_backup(self, zfs_filesystem, timestamp: str) -> None:
         ''' Performs a full zfs sync without a base snapshot '''
@@ -296,11 +302,19 @@ class ZFSAgent(BlockingParamikoClient):
             f"{self.backupfs_name}/{fs_name}",
             False
         )
-        logging.info("Error of sync command: %s", stderr)
+        if len(stderr) > 0:
+            logging.info("Errors of sync command: %s", stderr)
+        else:
+            logging.info("Sync successfully completed")
 
     def remove_filesystem_if_exists(self, zfs_filesystem: str) -> None:
         ''' Removes a filesystem if it exists '''
         pool_name = zfs_filesystem.split('/')[0]
+        logging.info(
+            "Removing filesystem %s from pool %s (if it exists)",
+            zfs_filesystem, pool_name
+        )
+
         # Remove filesystem itself
         stdout, _ = self.block_exec_command(
             f"zfs list -r {pool_name}",
@@ -327,6 +341,11 @@ class ZFSAgent(BlockingParamikoClient):
         if filesystemname in self.retention:
             backups_to_keep = self.retention[filesystemname]
 
+        logging.info(
+            "Config: Keep %d backups for filesystem %s. Found %d backups",
+            backups_to_keep, filesystemname, len(backup_snapshots)
+        )
+
         if len(backup_snapshots) > backups_to_keep:
             for timestamp_to_destroy in backup_snapshots[:-backups_to_keep]:
                 timestamp_to_destroy_string = timestamp_to_destroy.strftime(
@@ -342,6 +361,11 @@ class ZFSAgent(BlockingParamikoClient):
                     f"{timestamp_to_destroy_string}",
                     False
                 )
+        else:
+            logging.info(
+                "No obsolete backups to remove for filesystem %s",
+                filesystemname
+            )
 
     def newest_snapshot_in_given_list(
         self, zfs_filesystem: str, given_timestamps: list[datetime]
@@ -375,10 +399,17 @@ class ZFSAgent(BlockingParamikoClient):
             False
         )
 
+        logging.info(
+            "Retrieving list of backup snapshots for backup filesystem %s",
+            fs_name
+        )
         backup_timestamps = self.snapshot_timestamps(
             f"{self.backuppool_name}/{self.backupfs_name}/{fs_name}"
         )
 
+        logging.info(
+            "Retrieving snapshots for src to check for incremental option"
+        )
         newest_snapshot = self.newest_snapshot_in_given_list(
             zfs_filesystem, backup_timestamps
         )
@@ -390,6 +421,11 @@ class ZFSAgent(BlockingParamikoClient):
                 now_stamp
             )
         else:
+            logging.info(
+                "No matching previous snapshot found for filesystem %s, "
+                "preparing full backup",
+                zfs_filesystem
+            )
             self.remove_filesystem_if_exists(
                 f"{self.backuppool_name}/{self.backupfs_name}/{fs_name}"
             )
@@ -409,8 +445,18 @@ class ZFSAgent(BlockingParamikoClient):
             last_backup_time = datetime.fromtimestamp(time_stamp_stat.st_mtime)
             oldest_timestamp = min(oldest_timestamp, last_backup_time)
 
+        logging.info(
+            "Oldest timestamp of all backup drives is %s",
+            oldest_timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        )
+
         for zfs_filesystem in self.zfs_filesystems():
             # Determine list of snapshots on filesystem
+            logging.info(
+                "Checking source filesystem %s for obsolete snapshots",
+                zfs_filesystem
+            )
+
             stdout, _ = self.block_exec_command(
                 f"zfs list -t snapshot {zfs_filesystem}",
                 False
@@ -431,10 +477,6 @@ class ZFSAgent(BlockingParamikoClient):
 
             for timestamp in timestamps:
                 if timestamp < oldest_timestamp:
-                    logging.info(
-                        "...found and older than %s",
-                        oldest_timestamp.strftime('%Y-%m-%d %H:%M:%S')
-                    )
                     # Delete obsolete snapshot, not required anymore
                     # for incremental backups
                     logging.info(
@@ -567,7 +609,7 @@ def main() -> None:
         config = tomllib.load(config_file)
 
     # Create timestamp folder if it does not exist
-    os.makedirs(config["pvehost"]["timestampfolder"], exist_ok=True)
+    os.makedirs(config["common"]["timestampfolder"], exist_ok=True)
 
     main_loop(config)
 
