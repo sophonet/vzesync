@@ -236,7 +236,6 @@ class ZFSAgent(BlockingParamikoClient):
         else:
             logging.info("Backup filesystem %s already exists", zfs_filesystem)
 
-
     def snapshot_timestamps(self, zfs_filesystem: str) -> list[datetime]:
         ''' Retrieve a sorted list of timestamps of a zfs filesystem '''
         # Determine sorted list of snapshots on backuppool
@@ -422,10 +421,11 @@ class ZFSAgent(BlockingParamikoClient):
             fs_name
         )
 
-        backup_filesystem_name = f"{self.backuppool_name}/{self.backupfs_name}/{fs_name}"
+        backup_filesystem_name = \
+            f"{self.backuppool_name}/{self.backupfs_name}/{fs_name}"
         self.create_backupfs_if_not_exists(backup_filesystem_name)
 
-        backup_timestamps, error = self.snapshot_timestamps(backup_filesystem_name)
+        backup_timestamps = self.snapshot_timestamps(backup_filesystem_name)
         
         logging.info(
             "Retrieving snapshots for src to check for incremental option"
