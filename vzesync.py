@@ -221,19 +221,37 @@ class ZFSAgent(BlockingParamikoClient):
             r'[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}:[0-9]{2}:[0-9]{2}'
         )
 
+    def create_backupfs_if_not_exists(self, zfs_filesystem: str) -> None:
+        ''' Create the backup filesystem if it does not exist yet '''
+        _, error = self.block_exec_command(
+            f"zfs list {zfs_filesystem}",
+            False
+        )
+        if "dataset does not exist" in error:
+            logging.info("Creating backup filesystem %s", zfs_filesystem)
+            self.block_exec_command(
+                f"zfs create -o canmount=noauto {zfs_filesystem}",
+                False
+            )
+        else:
+            logging.info("Backup filesystem %s already exists", zfs_filesystem)
+
+
     def snapshot_timestamps(self, zfs_filesystem: str) -> list[datetime]:
         ''' Retrieve a sorted list of timestamps of a zfs filesystem '''
         # Determine sorted list of snapshots on backuppool
         logging.info("Retrieving snapshots for filesystem %s", zfs_filesystem)
 
-        stdout, _ = self.block_exec_command(
+        stdout, stderr = self.block_exec_command(
             f"zfs list -t snapshot {zfs_filesystem}",
             False
         )
+            
         snapshots = stdout.split("\n")
         timestamp_matches = [
             self.date_time_pattern.search(snapshot) for snapshot in snapshots
         ]
+
         timestamps = [
             datetime.strptime(
                 match.group(0), '%Y-%m-%d_%H:%M:%S'
@@ -403,10 +421,12 @@ class ZFSAgent(BlockingParamikoClient):
             "Retrieving list of backup snapshots for backup filesystem %s",
             fs_name
         )
-        backup_timestamps = self.snapshot_timestamps(
-            f"{self.backuppool_name}/{self.backupfs_name}/{fs_name}"
-        )
 
+        backup_filesystem_name = f"{self.backuppool_name}/{self.backupfs_name}/{fs_name}"
+        self.create_backupfs_if_not_exists(backup_filesystem_name)
+
+        backup_timestamps, error = self.snapshot_timestamps(backup_filesystem_name)
+        
         logging.info(
             "Retrieving snapshots for src to check for incremental option"
         )
@@ -615,5 +635,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
     main()
