@@ -245,7 +245,7 @@ class ZFSAgent(BlockingParamikoClient):
             f"zfs list -t snapshot {zfs_filesystem}",
             False
         )
-            
+
         snapshots = stdout.split("\n")
         timestamp_matches = [
             self.date_time_pattern.search(snapshot) for snapshot in snapshots
@@ -426,7 +426,7 @@ class ZFSAgent(BlockingParamikoClient):
         self.create_backupfs_if_not_exists(backup_filesystem_name)
 
         backup_timestamps = self.snapshot_timestamps(backup_filesystem_name)
-        
+
         logging.info(
             "Retrieving snapshots for src to check for incremental option"
         )
