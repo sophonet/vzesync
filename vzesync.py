@@ -593,6 +593,13 @@ def main_loop(config) -> None:
                 pve_agent_.backup_timestamp_outdated():
             logbuffer = io.StringIO()
             bufferhandler = logging.StreamHandler(logbuffer)
+            bufferhandler.setLevel(logging.INFO)
+            bufferhandler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s - %(levelname)s - %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S"
+                )
+            )
             logging.getLogger().addHandler(bufferhandler)
             pve_agent_.mount_drive_to_vm()
             zfs_agent_ = ZFSAgent(**config["zfshost"], **config["common"])
