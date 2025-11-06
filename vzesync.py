@@ -295,7 +295,7 @@ class ZFSAgent(BlockingParamikoClient):
         _, stderr = self.block_exec_command(
             f"zfs send -i {zfs_filesystem}@{base_snapshot} "
             f"{zfs_filesystem}@{timestamp} | "
-            f"zfs recv {self.backuppool_name}/"
+            f"zfs recv -o canmount=noauto {self.backuppool_name}/"
             f"{self.backupfs_name}/"
             f"{fs_name}",
             False
@@ -315,7 +315,7 @@ class ZFSAgent(BlockingParamikoClient):
 
         _, stderr = self.block_exec_command(
             f"zfs send {zfs_filesystem}@{timestamp} | "
-            f"zfs recv {self.backuppool_name}/"
+            f"zfs recv -o canmount=noauto {self.backuppool_name}/"
             f"{self.backupfs_name}/{fs_name}",
             False
         )
