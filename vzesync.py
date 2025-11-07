@@ -318,9 +318,9 @@ class ZFSAgent(BlockingParamikoClient):
         if len(stderr) > 0:
             logging.info("Errors of sync command: %s", stderr)
             return False
-        else:
-            logging.info("Sync successfully completed")
-            return True
+
+        logging.info("Sync successfully completed")
+        return True
 
     def full_backup(self, zfs_filesystem, timestamp: str) -> None:
         ''' Performs a full zfs sync without a base snapshot '''
