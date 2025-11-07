@@ -26,7 +26,7 @@ import re
 from pathlib import Path
 from glob import glob
 
-# For communicating with platon host and pve host via SSH
+# For communicating with zfs host and pve host via SSH
 import paramiko
 
 DEFAULT_CONFIG_PATH = '/etc/vzesync.toml'
@@ -100,6 +100,7 @@ class PVEAgent(BlockingParamikoClient):
         self.backup_drive = None
         self.drive_path = None
         self.timestamp_path = None
+        self.mount_time = None
 
     def backup_drive_present(self) -> bool:
         ''' Checks if a backup drive is present as a device '''
@@ -170,6 +171,7 @@ class PVEAgent(BlockingParamikoClient):
             f'qm set {self.vmid} -{self.scsi_drive} {self.drive_path}',
             False
         )
+        self.mount_time = datetime.now()
         time.sleep(2)
 
     def unmount_drive_from_vm(self) -> None:
@@ -183,9 +185,21 @@ class PVEAgent(BlockingParamikoClient):
             False
         )
         time.sleep(2)
-        if os.path.exists(self.timestamp_path):
-            os.unlink(self.timestamp_path)
-        Path(self.timestamp_path).touch()
+
+        # Update timestamp of last backup
+        if not os.path.exists(self.timestamp_path):
+            Path(self.timestamp_path).touch()
+
+        # Timestamp is updated to mount time
+        # since in next round snapshots older than
+        # oldest timestamp are removed
+        os.utime(
+            self.timestamp_path,
+            (
+                self.mount_time.timestamp(),
+                self.mount_time.timestamp()
+            )
+        )
 
     def close(self) -> None:
         ''' Disconnect the SSH session '''
@@ -282,7 +296,7 @@ class ZFSAgent(BlockingParamikoClient):
         zfs_filesystem: str,
         base_snapshot: str,
         timestamp: str
-    ) -> None:
+    ) -> bool:
         ''' Performs a zfs incremental sync based on the base snapshot '''
         fs_name = zfs_filesystem.split('/')[-1]
 
@@ -295,7 +309,7 @@ class ZFSAgent(BlockingParamikoClient):
         _, stderr = self.block_exec_command(
             f"zfs send -i {zfs_filesystem}@{base_snapshot} "
             f"{zfs_filesystem}@{timestamp} | "
-            f"zfs recv -o canmount=noauto {self.backuppool_name}/"
+            f"zfs recv {self.backuppool_name}/"
             f"{self.backupfs_name}/"
             f"{fs_name}",
             False
@@ -303,8 +317,10 @@ class ZFSAgent(BlockingParamikoClient):
 
         if len(stderr) > 0:
             logging.info("Errors of sync command: %s", stderr)
+            return False
         else:
             logging.info("Sync successfully completed")
+            return True
 
     def full_backup(self, zfs_filesystem, timestamp: str) -> None:
         ''' Performs a full zfs sync without a base snapshot '''
@@ -434,15 +450,18 @@ class ZFSAgent(BlockingParamikoClient):
             zfs_filesystem, backup_timestamps
         )
 
+        incremental_success = False
         if newest_snapshot is not None:
-            self.incremental_backup(
+            incremental_success = self.incremental_backup(
                 zfs_filesystem,
                 newest_snapshot.strftime("%Y-%m-%d_%H:%M:%S"),
                 now_stamp
             )
-        else:
+
+        if not incremental_success:
             logging.info(
-                "No matching previous snapshot found for filesystem %s, "
+                "No matching previous snapshot found for filesystem %s,"
+                "or incremental backup failed,"
                 "preparing full backup",
                 zfs_filesystem
             )
