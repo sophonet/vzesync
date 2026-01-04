@@ -58,16 +58,17 @@ class BlockingParamikoClient:
         )
         self.client.connect(hostname=hostname, username=username, pkey=pkey)
 
-    def block_exec_command(self, command: str, quiet: bool) -> str:
+    def block_exec_command(self, command: str, quiet: bool) -> tuple[str, str]:
         ''' Execute command remotely and wait until finished '''
         if not quiet:
             logging.info("Running remote command %s", command)
         _, stdout, stderr = self.client.exec_command(command)
         exit_status = stdout.channel.recv_exit_status()
+        error_message = ""
         if exit_status != 0:
             error_message = stderr.read().decode("utf-8")
             logging.error("Exit status is %d: %s", exit_status, error_message)
-        return stdout.read().decode("utf-8"), stderr.read().decode("utf-8")
+        return stdout.read().decode("utf-8"), error_message
 
 
 # pylint: disable-next=too-many-instance-attributes
@@ -309,7 +310,7 @@ class ZFSAgent(BlockingParamikoClient):
         _, stderr = self.block_exec_command(
             f"zfs send -i {zfs_filesystem}@{base_snapshot} "
             f"{zfs_filesystem}@{timestamp} | "
-            f"zfs recv {self.backuppool_name}/"
+            f"zfs recv -o canmount=noauto {self.backuppool_name}/"
             f"{self.backupfs_name}/"
             f"{fs_name}",
             False
@@ -408,6 +409,12 @@ class ZFSAgent(BlockingParamikoClient):
         '''
         timestamps = self.snapshot_timestamps(zfs_filesystem)
 
+        for timestamp in timestamps:
+            logging.info(
+                "Found source snapshot with timestamp %s",
+                timestamp.strftime("%Y-%m-%d_%H:%M:%S")
+            )
+
         valid_timestamps = [
             timestamp for timestamp in timestamps
             if timestamp in given_timestamps
@@ -442,6 +449,12 @@ class ZFSAgent(BlockingParamikoClient):
         self.create_backupfs_if_not_exists(backup_filesystem_name)
 
         backup_timestamps = self.snapshot_timestamps(backup_filesystem_name)
+
+        for timestamp in backup_timestamps:
+            logging.info(
+                "Found backup snapshot with timestamp %s",
+                timestamp.strftime("%Y-%m-%d_%H:%M:%S")
+            )
 
         logging.info(
             "Retrieving snapshots for src to check for incremental option"
