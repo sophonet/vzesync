@@ -227,7 +227,10 @@ class ZFSAgent(BlockingParamikoClient):
         self.backupfs_name = backupfs_name
         self.retention = retention
         self.timestampfolder = timestampfolder
-        self.block_exec_command(f"zpool import -N {self.backuppool_name}", False)
+        self.block_exec_command(
+            f"zpool import -N {self.backuppool_name}",
+            False
+        )
         self.block_exec_command(
             f"zfs load-key {self.backuppool_name}/{self.backupfs_name}",
             False
@@ -245,7 +248,8 @@ class ZFSAgent(BlockingParamikoClient):
         if "dataset does not exist" in error:
             logging.info("Creating backup filesystem %s", zfs_filesystem)
             self.block_exec_command(
-                f"zfs create -o canmount=noauto -o readonly=on {zfs_filesystem}",
+                "zfs create -o canmount=noauto -o readonly=on " +
+                zfs_filesystem,
                 False
             )
         else:
@@ -310,7 +314,8 @@ class ZFSAgent(BlockingParamikoClient):
         _, stderr = self.block_exec_command(
             f"zfs send -i {zfs_filesystem}@{base_snapshot} "
             f"{zfs_filesystem}@{timestamp} | "
-            f"zfs recv -o canmount=noauto -o readonly=on {self.backuppool_name}/"
+            f"zfs recv -o canmount=noauto -o readonly=on "
+            f"{self.backuppool_name}/"
             f"{self.backupfs_name}/"
             f"{fs_name}",
             False
@@ -332,7 +337,8 @@ class ZFSAgent(BlockingParamikoClient):
 
         _, stderr = self.block_exec_command(
             f"zfs send {zfs_filesystem}@{timestamp} | "
-            f"zfs recv -o canmount=noauto -o readonly=on {self.backuppool_name}/"
+            f"zfs recv -o canmount=noauto -o readonly=on "
+            f"{self.backuppool_name}/"
             f"{self.backupfs_name}/{fs_name}",
             False
         )
