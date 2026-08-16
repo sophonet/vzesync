@@ -46,7 +46,7 @@ class BlockingParamikoClient:
     def __init__(
         self, hostname: str,
         hostkey: list,
-        username: str
+        username: str,
         private_key: list
     ):
         self.client = paramiko.SSHClient()
