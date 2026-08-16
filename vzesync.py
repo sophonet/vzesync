@@ -46,11 +46,9 @@ class BlockingParamikoClient:
     def __init__(
         self, hostname: str,
         hostkey: list,
-        username: str,
-        sudo: bool,
+        username: str
         private_key: list
     ):
-        self.sudo = sudo
         self.client = paramiko.SSHClient()
         decoded_bytes = base64.b64decode(hostkey[1])
         hostkey_obj = paramiko.PKey.from_type_string(
@@ -67,8 +65,6 @@ class BlockingParamikoClient:
         ''' Execute command remotely and wait until finished '''
         if not quiet:
             logging.info("Running remote command %s", command)
-        if self.sudo:
-            command = f"sudo {command}"
         _, stdout, stderr = self.client.exec_command(command)
         exit_status = stdout.channel.recv_exit_status()
         error_message = ""
@@ -91,14 +87,13 @@ class PVEAgent(BlockingParamikoClient):
         hostname: str,
         hostkey: list,
         username: str,
-        sudo: bool,
         private_key: list,
         timestampfolder: str,
         pve_backup_drives: dict,
         scsi_drive: str,
         vmid: str
     ):
-        super().__init__(hostname, hostkey, username, sudo, private_key)
+        super().__init__(hostname, hostkey, username, private_key)
 
         self.drive_id_folder: str = "/dev/disk/by-id"
         self.scsi_drive: str = scsi_drive
@@ -236,12 +231,18 @@ class ZFSAgent(BlockingParamikoClient):
         self.backupfs_name = backupfs_name
         self.retention = retention
         self.timestampfolder = timestampfolder
+        if sudo:
+            self.zpoolcommand = "sudo zpool"
+            self.zfscommand = "sudo zfs"
+        else:
+            self.zpoolcommand = "zpool"
+            self.zfscommand = "zfs"
         self.block_exec_command(
-            f"zpool import -N {self.backuppool_name}",
+            f"{self.zpoolcommand} import -N {self.backuppool_name}",
             False
         )
         self.block_exec_command(
-            f"zfs load-key {self.backuppool_name}/{self.backupfs_name}",
+            f"{self.zfscommand} load-key {self.backuppool_name}/{self.backupfs_name}",
             False
         )
         self.date_time_pattern = re.compile(
@@ -251,13 +252,13 @@ class ZFSAgent(BlockingParamikoClient):
     def create_backupfs_if_not_exists(self, zfs_filesystem: str) -> None:
         ''' Create the backup filesystem if it does not exist yet '''
         _, error = self.block_exec_command(
-            f"zfs list {zfs_filesystem}",
+            f"{self.zfscommand} list {zfs_filesystem}",
             False
         )
         if "dataset does not exist" in error:
             logging.info("Creating backup filesystem %s", zfs_filesystem)
             self.block_exec_command(
-                "zfs create -o canmount=noauto -o readonly=on " +
+                f"{self.zfscommand} create -o canmount=noauto -o readonly=on " +
                 zfs_filesystem,
                 False
             )
@@ -270,7 +271,7 @@ class ZFSAgent(BlockingParamikoClient):
         logging.info("Retrieving snapshots for filesystem %s", zfs_filesystem)
 
         stdout, _ = self.block_exec_command(
-            f"zfs list -t snapshot {zfs_filesystem}",
+            f"{self.zfscommand} list -t snapshot {zfs_filesystem}",
             False
         )
 
@@ -291,7 +292,7 @@ class ZFSAgent(BlockingParamikoClient):
         ''' Retrieve a list of zfs filesystems that are not
             part of the backup pool
         '''
-        stdout, _ = self.block_exec_command("zfs list", False)
+        stdout, _ = self.block_exec_command(f"{self.zfscommand} list", False)
         backup_filesystems = []
         for line in stdout.split("\n"):
             name_match = re.match(r"^[^\s]+", line)
@@ -321,9 +322,9 @@ class ZFSAgent(BlockingParamikoClient):
             base_snapshot
         )
         _, stderr = self.block_exec_command(
-            f"zfs send -i {zfs_filesystem}@{base_snapshot} "
+            f"{self.zfscommand} send -i {zfs_filesystem}@{base_snapshot} "
             f"{zfs_filesystem}@{timestamp} | "
-            f"zfs recv -o canmount=noauto -o readonly=on "
+            f"{self.zfscommand} recv -o canmount=noauto -o readonly=on "
             f"{self.backuppool_name}/"
             f"{self.backupfs_name}/"
             f"{fs_name}",
@@ -345,8 +346,8 @@ class ZFSAgent(BlockingParamikoClient):
         logging.info("Syncing filesystem %s completely", zfs_filesystem)
 
         _, stderr = self.block_exec_command(
-            f"zfs send {zfs_filesystem}@{timestamp} | "
-            f"zfs recv -o canmount=noauto -o readonly=on "
+            f"{self.zfscommand} send {zfs_filesystem}@{timestamp} | "
+            f"{self.zfscommand} recv -o canmount=noauto -o readonly=on "
             f"{self.backuppool_name}/"
             f"{self.backupfs_name}/{fs_name}",
             False
@@ -366,7 +367,7 @@ class ZFSAgent(BlockingParamikoClient):
 
         # Remove filesystem itself
         stdout, _ = self.block_exec_command(
-            f"zfs list -r {pool_name}",
+            f"{self.zfscommand} list -r {pool_name}",
             False
         )
         filesystems = stdout.split("\n")
@@ -375,7 +376,7 @@ class ZFSAgent(BlockingParamikoClient):
                 # Add '-r' flag to recursively destroy snapshots
                 # that do not follow timestamp pattern
                 self.block_exec_command(
-                    f"zfs destroy -r {zfs_filesystem}",
+                    f"{self.zfscommand} destroy -r {zfs_filesystem}",
                     False
                 )
                 return
@@ -405,7 +406,7 @@ class ZFSAgent(BlockingParamikoClient):
                     timestamp_to_destroy_string
                 )
                 self.block_exec_command(
-                    f"zfs destroy {self.backuppool_name}/"
+                    f"{self.zfscommand} destroy {self.backuppool_name}/"
                     f"{self.backupfs_name}/{filesystemname}@"
                     f"{timestamp_to_destroy_string}",
                     False
@@ -450,7 +451,7 @@ class ZFSAgent(BlockingParamikoClient):
             now_stamp, zfs_filesystem
         )
         self.block_exec_command(
-            f"zfs snapshot {zfs_filesystem}@{now_stamp}",
+            f"{self.zfscommand} snapshot {zfs_filesystem}@{now_stamp}",
             False
         )
 
@@ -525,7 +526,7 @@ class ZFSAgent(BlockingParamikoClient):
             )
 
             stdout, _ = self.block_exec_command(
-                f"zfs list -t snapshot {zfs_filesystem}",
+                f"{self.zfscommand} list -t snapshot {zfs_filesystem}",
                 False
             )
             snapshots = stdout.split("\n")
@@ -554,19 +555,19 @@ class ZFSAgent(BlockingParamikoClient):
                         '%Y-%m-%d_%H:%M:%S'
                     )
                     self.block_exec_command(
-                        f"zfs destroy {zfs_filesystem}@{snapshot_name}",
+                        f"{self.zfscommand} destroy {zfs_filesystem}@{snapshot_name}",
                         False
                     )
 
     def close(self) -> None:
         ''' Scrubs the backup pool and then disconnects the SSH session '''
-        self.block_exec_command(f"zpool scrub {self.backuppool_name}", False)
+        self.block_exec_command(f"{self.zpoolcommand} scrub {self.backuppool_name}", False)
         time.sleep(2)
         running = True
         while running:
             time.sleep(60)
             stdout, _ = self.block_exec_command(
-                f"zpool status {self.backuppool_name}", True
+                f"{self.zpoolcommand} status {self.backuppool_name}", True
             )
             running = (
                 re.search(
@@ -577,16 +578,16 @@ class ZFSAgent(BlockingParamikoClient):
                 is not None
             )
 
-        stdout, _ = self.block_exec_command("zpool list", False)
+        stdout, _ = self.block_exec_command(f"{self.zpoolcommand} list", False)
         logging.info(stdout)
         stdout, _ = self.block_exec_command(
-            f"zfs get compressratio "
+            f"{self.zfscommand} get compressratio "
             f"{self.backuppool_name}/{self.backupfs_name}",
             False
         )
         logging.info(stdout)
         logging.info("Exporting %s", self.backuppool_name)
-        self.block_exec_command(f"zpool export {self.backuppool_name}", False)
+        self.block_exec_command(f"{self.zpoolcommand} export {self.backuppool_name}", False)
         time.sleep(2)
         self.client.close()
 
