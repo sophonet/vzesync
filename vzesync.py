@@ -242,7 +242,8 @@ class ZFSAgent(BlockingParamikoClient):
             False
         )
         self.block_exec_command(
-            f"{self.zfscommand} load-key {self.backuppool_name}/{self.backupfs_name}",
+            f"{self.zfscommand} load-key "
+            f"{self.backuppool_name}/{self.backupfs_name}",
             False
         )
         self.date_time_pattern = re.compile(
@@ -258,8 +259,8 @@ class ZFSAgent(BlockingParamikoClient):
         if "dataset does not exist" in error:
             logging.info("Creating backup filesystem %s", zfs_filesystem)
             self.block_exec_command(
-                f"{self.zfscommand} create -o canmount=noauto -o readonly=on " +
-                zfs_filesystem,
+                f"{self.zfscommand} create "
+                f"-o canmount=noauto -o readonly=on {zfs_filesystem}",
                 False
             )
         else:
@@ -555,13 +556,17 @@ class ZFSAgent(BlockingParamikoClient):
                         '%Y-%m-%d_%H:%M:%S'
                     )
                     self.block_exec_command(
-                        f"{self.zfscommand} destroy {zfs_filesystem}@{snapshot_name}",
+                        f"{self.zfscommand} destroy "
+                        f"{zfs_filesystem}@{snapshot_name}",
                         False
                     )
 
     def close(self) -> None:
         ''' Scrubs the backup pool and then disconnects the SSH session '''
-        self.block_exec_command(f"{self.zpoolcommand} scrub {self.backuppool_name}", False)
+        self.block_exec_command(
+            f"{self.zpoolcommand} scrub {self.backuppool_name}",
+            False
+        )
         time.sleep(2)
         running = True
         while running:
@@ -587,7 +592,10 @@ class ZFSAgent(BlockingParamikoClient):
         )
         logging.info(stdout)
         logging.info("Exporting %s", self.backuppool_name)
-        self.block_exec_command(f"{self.zpoolcommand} export {self.backuppool_name}", False)
+        self.block_exec_command(
+            f"{self.zpoolcommand} export {self.backuppool_name}",
+            False
+        )
         time.sleep(2)
         self.client.close()
 
