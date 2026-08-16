@@ -44,7 +44,11 @@ class BlockingParamikoClient:
     }
 
     def __init__(
-        self, hostname: str, hostkey: list, username: str, sudo: bool, private_key: list
+        self, hostname: str,
+        hostkey: list,
+        username: str,
+        sudo: bool,
+        private_key: list
     ):
         self.sudo = sudo
         self.client = paramiko.SSHClient()
