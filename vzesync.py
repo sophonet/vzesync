@@ -44,8 +44,9 @@ class BlockingParamikoClient:
     }
 
     def __init__(
-        self, hostname: str, hostkey: list, username: str, private_key: list
+        self, hostname: str, hostkey: list, username: str, sudo: bool, private_key: list
     ):
+        self.sudo = sudo
         self.client = paramiko.SSHClient()
         decoded_bytes = base64.b64decode(hostkey[1])
         hostkey_obj = paramiko.PKey.from_type_string(
@@ -62,6 +63,8 @@ class BlockingParamikoClient:
         ''' Execute command remotely and wait until finished '''
         if not quiet:
             logging.info("Running remote command %s", command)
+        if self.sudo:
+            command = f"sudo {command}"
         _, stdout, stderr = self.client.exec_command(command)
         exit_status = stdout.channel.recv_exit_status()
         error_message = ""
@@ -84,13 +87,14 @@ class PVEAgent(BlockingParamikoClient):
         hostname: str,
         hostkey: list,
         username: str,
+        sudo: bool,
         private_key: list,
         timestampfolder: str,
         pve_backup_drives: dict,
         scsi_drive: str,
         vmid: str
     ):
-        super().__init__(hostname, hostkey, username, private_key)
+        super().__init__(hostname, hostkey, username, sudo, private_key)
 
         self.drive_id_folder: str = "/dev/disk/by-id"
         self.scsi_drive: str = scsi_drive
@@ -216,13 +220,14 @@ class ZFSAgent(BlockingParamikoClient):
         hostname: str,
         hostkey: list,
         username: str,
+        sudo: bool,
         private_key: list,
         backuppool_name: str,
         backupfs_name: str,
         retention: dict,
         timestampfolder: str
     ):
-        super().__init__(hostname, hostkey, username, private_key)
+        super().__init__(hostname, hostkey, username, sudo, private_key)
         self.backuppool_name = backuppool_name
         self.backupfs_name = backupfs_name
         self.retention = retention
