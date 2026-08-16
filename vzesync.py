@@ -226,7 +226,7 @@ class ZFSAgent(BlockingParamikoClient):
         retention: dict,
         timestampfolder: str
     ):
-        super().__init__(hostname, hostkey, username, sudo, private_key)
+        super().__init__(hostname, hostkey, username, private_key)
         self.backuppool_name = backuppool_name
         self.backupfs_name = backupfs_name
         self.retention = retention
